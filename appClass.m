@@ -1213,7 +1213,8 @@ classdef appClass < handle
                     % first scan special case-select peaks
                     
                     %% jonasf : added for testbench data analysis
-                    if ~isfield(scanFileData.params, 'ReagentNmae')
+                    if ~isfield(scanFileData.params, 'ReagentName')
+                        disp('*** Appending the scan file ReagentName ***');
                         temp_params = scanFileData.params; 
                         scanFileData = rmfield(scanFileData, 'params');
                         params = temp_params ; 
@@ -1222,6 +1223,7 @@ classdef appClass < handle
                     end
                     scanFileData = load(filename);                   
                     if ~isfield(scanFileData.params, 'FlowRate')
+                        disp('*** Appending the scan file FlowRate ***');
                         temp_params = scanFileData.params;
                         scanFileData = rmfield(scanFileData, 'params');
                         params = temp_params ;
