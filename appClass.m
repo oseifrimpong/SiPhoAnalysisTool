@@ -1230,9 +1230,7 @@ classdef appClass < handle
                         params.FlowRate = '0';
                         save(filename, 'params', '-append');
                     end
-                    
-                    
-                    
+      
                     if scan == self.firstScanNumber
                         % Erase previous preProcess Data
                         if isfield(scanFileData, 'peakResults')
@@ -1307,6 +1305,10 @@ classdef appClass < handle
                             end % peak loop (first case)
                         end % channel loop (first case)
                     else % scan > self.firstScanNumber; don't do it again for the first scan
+                        % Erase previous preProcess Data
+                        if isfield(scanFileData, 'peakResults')
+                            scanFileData = rmfield(scanFileData, 'peakResults');
+                        end
                         
                         % process data
                         for channel = self.datasetParams.includedChannel % number of channels
@@ -1392,7 +1394,10 @@ classdef appClass < handle
                     end % first scan
                     % add peakResults to scanFileData
                     % re-write file
+                    msg = strcat('Saving peakResults to', filename);
+                    disp(msg);
                     save(filename, 'peakResults', '-append');
+                    
                 end % if file exists
             end % scan loop
             delete(waitbar_handle);
