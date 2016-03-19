@@ -7,7 +7,7 @@ RI = zeros(1, numOfReagents);
 % RI and Reagent Names will be the same in all channel: choose channel 1
 for r = 1:numOfReagents
     ReagentNames{r} = obj.dataset{1, obj.reagentChangeIndex(r)}.params.ReagentName;
-    RI(r) = obj.dataset{1, obj.reagentChangeIndex(r)}.params.ReagentRI;
+    RI(r) = obj.dataset{1, obj.reagentChangeIndex(r)}.params.ReagentRI
 end
 
 includeRICheck = ones(1, numOfReagents);
