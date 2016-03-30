@@ -87,7 +87,9 @@ classdef appClass < handle
             self.contextMenu.trackedPeaksPlot.inPicoMeters = false;
             self.contextMenu.trackedPeaksPlot.plotRaw = false;
             self.contextMenu.trackedPeaksPlot.plotTemp = false;
+            self.contextMenu.trackedPeaksPlot.addLegend = false;
             self.contextMenu.trackedPeaksPlot.reagentOffset = 0;
+            self.contextMenu.trackedPeaksPlot.plotReference = false;
             self.contextMenu.trackedPeaksPlot.showReagents = false;
             self.contextMenu.trackedPeaksPlot.yDifferenceValues = [];
             self.contextMenu.trackedPeaksPlot.subtractReference = false;
@@ -148,6 +150,7 @@ classdef appClass < handle
             self.appParams.fitPeakTracking = {}; % array of fitted peak locations for each channel and peak
             self.appParams.rawPeakTracking = {}; % array of raw peak locations for each channel and peak
             self.appParams.referenceToSubract = ''; % 'channel\peak' to subtract from active peak tracking plot
+            self.appParams.referenceToPlot = ''; % 'channel\peak' to plot with functional channel
             self.appParams.tag = 1; % index into channel tag list (default = functional)
             self.appParams.xData = {}; % used for peak track plotting: either scan # or time
             
@@ -223,19 +226,21 @@ classdef appClass < handle
             % create context menu (not attached to anything)
             peakTrackingPlotContextMenu_h = uicontextmenu('Parent', gui_figure_handle);
             % install callbacks
+            uimenu(peakTrackingPlotContextMenu_h, 'Label', 'Add legend', 'Callback', @self.contextMenuTrackedPeaksPlotAddLegend);
+            uimenu(peakTrackingPlotContextMenu_h, 'Label', 'Add reference plot', 'Callback', @self.contextMenuTrackedPeaksPlotReference);
+            uimenu(peakTrackingPlotContextMenu_h, 'Label', 'Add text', 'Callback', @self.contextMenuTrackedPeaksPlotAddText);
+            uimenu(peakTrackingPlotContextMenu_h, 'Label', 'Add vertical Marker', 'Callback', @self.contextMenuTrackedPeaksPlotAddLine);
             uimenu(peakTrackingPlotContextMenu_h, 'Label', 'Hide position marker', 'Callback', @self.contextMenuTrackedPeaksPlotShowCurrentPosition);
-            uimenu(peakTrackingPlotContextMenu_h, 'Label', 'Show excluded peaks', 'Callback', @self.contextMenuTrackedPeaksPlotPlotExcludedScans);
-            uimenu(peakTrackingPlotContextMenu_h, 'Label', 'Units in pm', 'Callback', @self.contextMenuTrackedPeaksPlotShowInPm);
-            uimenu(peakTrackingPlotContextMenu_h, 'Label', 'Show raw data', 'Callback', @self.contextMenuTrackedPeaksPlotShowRawTracking);
-            uimenu(peakTrackingPlotContextMenu_h, 'Label', 'Normalize', 'Callback', @self.contextMenuTrackedPeaksPlotNormalize);
-            uimenu(peakTrackingPlotContextMenu_h, 'Label', 'Subtract Reference', 'Callback', @self.contextMenuTrackedPeaksPlotSubtractReference);
             uimenu(peakTrackingPlotContextMenu_h, 'Label', 'Measure y-axis difference', 'Callback', @self.contextMenuTrackedPeaksPlotMeasureYDifference);
-            uimenu(peakTrackingPlotContextMenu_h, 'Label', 'Add Vertical Marker', 'Callback', @self.contextMenuTrackedPeaksPlotAddLine);
-            uimenu(peakTrackingPlotContextMenu_h, 'Label', 'Add Text', 'Callback', @self.contextMenuTrackedPeaksPlotAddText);
-            uimenu(peakTrackingPlotContextMenu_h, 'Label', 'Remove Text', 'Callback', @self.contextMenuTrackedPeaksPlotRemoveText);
-            uimenu(peakTrackingPlotContextMenu_h, 'Label', 'Plot Temp', 'Callback', @self.contextMenuTrackedPeaksPlotPlotTemp);
-            uimenu(peakTrackingPlotContextMenu_h, 'Label', 'Show Reagents', 'Callback', @self.contextMenuTrackedPeaksPlotShowReagents);
-            uimenu(peakTrackingPlotContextMenu_h, 'Label', 'Reagent Offset', 'Callback', @self.contextMenuTrackedPeaksPlotReagentOffset);
+            uimenu(peakTrackingPlotContextMenu_h, 'Label', 'Normalize', 'Callback', @self.contextMenuTrackedPeaksPlotNormalize);
+            uimenu(peakTrackingPlotContextMenu_h, 'Label', 'Plot temp', 'Callback', @self.contextMenuTrackedPeaksPlotPlotTemp);
+            uimenu(peakTrackingPlotContextMenu_h, 'Label', 'Reagent offset', 'Callback', @self.contextMenuTrackedPeaksPlotReagentOffset);
+            uimenu(peakTrackingPlotContextMenu_h, 'Label', 'Remove text', 'Callback', @self.contextMenuTrackedPeaksPlotRemoveText);
+            uimenu(peakTrackingPlotContextMenu_h, 'Label', 'Show excluded peaks', 'Callback', @self.contextMenuTrackedPeaksPlotPlotExcludedScans);
+            uimenu(peakTrackingPlotContextMenu_h, 'Label', 'Show reagents', 'Callback', @self.contextMenuTrackedPeaksPlotShowReagents);
+            uimenu(peakTrackingPlotContextMenu_h, 'Label', 'Show raw data', 'Callback', @self.contextMenuTrackedPeaksPlotShowRawTracking);
+            uimenu(peakTrackingPlotContextMenu_h, 'Label', 'Subtract Reference', 'Callback', @self.contextMenuTrackedPeaksPlotSubtractReference);
+            uimenu(peakTrackingPlotContextMenu_h, 'Label', 'Units in pm', 'Callback', @self.contextMenuTrackedPeaksPlotShowInPm);
             uimenu(peakTrackingPlotContextMenu_h, 'Label', 'Export Data', 'Callback', @self.contextMenuTrackedPeaksPlotExportData);
             uimenu(peakTrackingPlotContextMenu_h, 'Label', 'Export Figure', 'Callback', {@self.contextMenuTrackedPeaksPlotUndock});
             % attach context menu to figure window
@@ -403,12 +408,71 @@ classdef appClass < handle
             self.annotationText{end, 2} = get(h, 'Position');
         end
         
+        function self = contextMenuTrackedPeaksPlotReference (self, hObject, eventData)
+            if ~self.contextMenu.trackedPeaksPlot.plotReference                
+                % make a list of reference channels and peaks
+                referenceChList = {}; % empty cell array for ref list
+                % get cell array for tag
+                tagStr = get(self.gui.panelScanTagPopup, 'String');   % rtns cell array w/ all str values
+                for ch = self.datasetParams.includedChannel
+                    if strcmp(tagStr{self.appParams.tag(ch)}, 'Reference')
+                        for pp = 1:self.datasetParams.numOfPeaks(ch)
+                            referenceChList{end+1} = strcat(num2str(ch), '.', num2str(pp));
+                        end
+                    end
+                end
+                
+                % quit if the user hasn't specified any reference channel
+                if isempty(referenceChList) % no ref channel specified
+                    msgbox('No reference channel specified');
+                    return
+                end
+                % popup window for user to select refrence peak
+                [selection, ok] = listdlg('Name', 'Reference Peaks', ...
+                    'PromptString', 'Select the reference peak to subtract',...
+                    'ListString', referenceChList,...
+                    'SelectionMode', 'single');
+                if ok
+                    % set selection
+                    % returns an index into cell array, get string value
+                    self.appParams.referenceToPlot = referenceChList{selection};
+                    % update context menu label
+                    self.contextMenu.trackedPeaksPlot.plotReference = true;
+                    set(hObject, 'Label', 'Remove reference plot');
+                    % normalize original plot
+                    if ~self.contextMenu.trackedPeaksPlot.normalize
+                        % there is a bug here w/ passing hObject but I
+                        % don't know how to fix it and have no patience...
+                        self.contextMenuTrackedPeaksPlotNormalize('','');
+                    end
+                end
+            else % already plotting reference channel
+                self.appParams.referenceToPlot = ''; % clear
+                self.contextMenu.trackedPeaksPlot.plotReference = false;
+                set(hObject, 'Label', 'Add reference plot');
+            end
+            % update plot
+            self.plotPeakTracking();
+        end
+        
         function self = contextMenuTrackedPeaksPlotPlotTemp (self, hObject, eventData)
             self.contextMenu.trackedPeaksPlot.plotTemp = ~self.contextMenu.trackedPeaksPlot.plotTemp;
             if self.contextMenu.trackedPeaksPlot.plotTemp
                 set(hObject, 'Label', 'Unplot Temp');
             else
                 set(hObject, 'Label', 'Plot Temp');
+            end
+            self.plotPeakTracking();
+        end
+        
+        function self = contextMenuTrackedPeaksPlotAddLegend (self, hObject, eventData)
+            self.contextMenu.trackedPeaksPlot.addLegend = ~self.contextMenu.trackedPeaksPlot.addLegend;
+            if self.contextMenu.trackedPeaksPlot.addLegend
+                set(hObject, 'Label', 'Remove legend');
+                self.contextMenu.trackedPeaksPlot.addLegend = true;
+            else
+                set(hObject, 'Label', 'Add legend');
+                self.contextMenu.trackedPeaksPlot.addLegend = false;
             end
             self.plotPeakTracking();
         end
@@ -478,8 +542,10 @@ classdef appClass < handle
             self.contextMenu.trackedPeaksPlot.normalize = ~self.contextMenu.trackedPeaksPlot.normalize;
             if self.contextMenu.trackedPeaksPlot.normalize
                 set(hObject, 'Label', 'Un-Normalize');
+                self.contextMenu.trackedPeaksPlot.normalize = true;
             else
                 set(hObject, 'Label', 'Normalize');
+                self.contextMenu.trackedPeaksPlot.normalize = false;
             end
             self.plotPeakTracking();
         end
@@ -1676,7 +1742,18 @@ classdef appClass < handle
             % normalized data
             if self.contextMenu.trackedPeaksPlot.normalize || self.contextMenu.trackedPeaksPlot.subtractReference
                 % normalizationValue = tempRawPeakTrackingArray{self.appParams.activeChannel}{self.appParams.activePeak}(self.firstScanNumber);
-                normalizationValue = tempRawPeakTrackingArray(self.firstScanNumber);
+
+                % bug fix - shons - 29 march 2016
+                % For some reason, firstScanNumber doesn't get updated when
+                % first scan is excluded. Therefore, the normalization is
+                % wrong (eg: not 0 on plotted 1st scan)
+%                normalizationValue = tempRawPeakTrackingArray(self.firstScanNumber);
+                scanNumber = self.firstScanNumber;
+                while (self.dataset{self.appParams.activeChannel, scanNumber}.excludeScan)
+                    scanNumber = scanNumber + 1;
+                end
+                normalizationValue = tempRawPeakTrackingArray(scanNumber);
+                
 %                 for scan = self.firstScanNumber:self.lastScanNumber
 %                     tempRawPeakTrackingArray{self.appParams.activeChannel}{self.appParams.activePeak}(scan) = ...
 %                         tempRawPeakTrackingArray{self.appParams.activeChannel}{self.appParams.activePeak}(scan) -...
@@ -1693,7 +1770,7 @@ classdef appClass < handle
                     yLabelName = 'Wavlength shift [nm]';
                 end
             end
-            
+
             % subtract reference (normalize both)
             if ~strcmpi(self.appParams.referenceToSubract, '') && self.contextMenu.trackedPeaksPlot.subtractReference
                 % strsplit is not in MATLAB R2011
@@ -1703,7 +1780,18 @@ classdef appClass < handle
                 refPk = str2double(strVals(2));
                 % subtract 'normalized' peak array from fit peak array
                 referenceFitPeakTrackingArray = self.appParams.fitPeakTracking{refCh}{refPk};
-                normalizationValue = referenceFitPeakTrackingArray(self.firstScanNumber);
+
+                % bug fix - shons - 29 march 2016
+                % For some reason, firstScanNumber doesn't get updated when
+                % first scan is excluded. Therefore, the normalization is
+                % wrong (eg: not 0 on plotted 1st scan)
+%                normalizationValue = referenceFitPeakTrackingArray(self.firstScanNumber);
+                scanNumber = self.firstScanNumber;
+                while (self.dataset{self.appParams.activeChannel, scanNumber}.excludeScan)
+                    scanNumber = scanNumber + 1;
+                end
+                normalizationValue = referenceFitPeakTrackingArray(scanNumber);
+
                 tempFitPeakTrackingArray = tempFitPeakTrackingArray - (referenceFitPeakTrackingArray - normalizationValue);
 %                 normalizationValue = self.dataset{refCh,self.firstScanNumber}.peaks{refPk}.fitPeakWvl;
 %                 for scan = self.firstScanNumber:self.lastScanNumber
@@ -1713,7 +1801,30 @@ classdef appClass < handle
 %                 end
             end
             
+            % plot reference - 29 march 2016
+            if ~strcmpi(self.appParams.referenceToPlot, '') && self.contextMenu.trackedPeaksPlot.plotReference
+                % initialize
+                % strsplit is not in MATLAB R2011
+%                [strVals,~] = strsplit(self.appParams.referenceToSubract,'.');
+                strVals = splitstring(self.appParams.referenceToPlot,'.');
+                refCh = str2double(strVals(1));
+                refPk = str2double(strVals(2));
+                % subtract 'normalized' peak array from fit peak array
+                referenceFitPeakTrackingArrayToPlot = self.appParams.fitPeakTracking{refCh}{refPk};
 
+                % bug fix - shons - 29 march 2016
+                % For some reason, firstScanNumber doesn't get updated when
+                % first scan is excluded. Therefore, the normalization is
+                % wrong (eg: not 0 on plotted 1st scan)
+%                normalizationValue = referenceFitPeakTrackingArrayToPlot(self.firstScanNumber);
+                scanNumber = self.firstScanNumber;
+                while (self.dataset{self.appParams.activeChannel, scanNumber}.excludeScan)
+                    scanNumber = scanNumber + 1;
+                end
+                normalizationValue = referenceFitPeakTrackingArrayToPlot(scanNumber);
+                tempReferenceFitPeakTrackingArray = referenceFitPeakTrackingArrayToPlot - normalizationValue;
+            end
+            
             
             if self.testParams.AssayParams.TranslateRecipeTimeToSweeps
                 xLabelName = 'Scan Number';
@@ -1728,6 +1839,10 @@ classdef appClass < handle
 %                 tempFitPeakTrackingArray{self.appParams.activeChannel}{self.appParams.activePeak}*yScale;
             tempRawPeakTrackingArray = tempRawPeakTrackingArray*yScale;
             tempFitPeakTrackingArray = tempFitPeakTrackingArray*yScale;
+            % reference plot - 29 march 2016
+            if ~strcmpi(self.appParams.referenceToPlot, '') && self.contextMenu.trackedPeaksPlot.plotReference
+                tempReferenceFitPeakTrackingArray = tempReferenceFitPeakTrackingArray*yScale;
+            end
             
             % Update plot data with excluded scans
             if ~self.contextMenu.trackedPeaksPlot.plotExcludedScans
@@ -1737,6 +1852,10 @@ classdef appClass < handle
                 tempRawPeakTrackingArray = tempRawPeakTrackingArray(includedScans);
                 tempFitPeakTrackingArray = tempFitPeakTrackingArray(includedScans);
                 tempScanTemperature = tempScanTemperature(includedScans);
+                % reference plot - 29 march 2016
+                if ~strcmpi(self.appParams.referenceToPlot, '') && self.contextMenu.trackedPeaksPlot.plotReference
+                    tempReferenceFitPeakTrackingArray = tempReferenceFitPeakTrackingArray(includedScans);
+                end
                 tempXData = tempXData(1:length(includedScans));
                 leftExclude = sum(self.appParams.tempActiveChannelExcludedScans < tempPeakTrackingPlotCropValues(self.LB));
                 rightExclude = sum(self.appParams.tempActiveChannelExcludedScans <= tempPeakTrackingPlotCropValues(self.UB));
@@ -1785,11 +1904,36 @@ classdef appClass < handle
                         [tempFitPeakTrackingArray(tempPeakTrackingPlotCropValues(self.LB):tempPeakTrackingPlotCropValues(self.UB));...
                         tempRawPeakTrackingArray(tempPeakTrackingPlotCropValues(self.LB):tempPeakTrackingPlotCropValues(self.UB))]);
                     legend(self.gui.peakTrackingFig(1), 'Fit', 'min/max');
+                    % Legend
+                    if self.contextMenu.trackedPeaksPlot.addLegend
+                        hold(self.gui.peakTrackingFig(1), 'on');
+                        legend('Location', 'northwest');
+                        hold(self.gui.peakTrackingFig(1), 'off');
+                    end
+                    
                 else
 %                     plot(self.gui.peakTrackingFig(1), tempXData, tempFitPeakTrackingArray{self.appParams.activeChannel}{self.appParams.activePeak});
+
+                    % reference plot - 29 march 2016
+                    if self.contextMenu.trackedPeaksPlot.plotReference
+                        plot(self.gui.peakTrackingFig(1),...
+                            tempXData(tempPeakTrackingPlotCropValues(self.LB):tempPeakTrackingPlotCropValues(self.UB)),...
+                            tempReferenceFitPeakTrackingArray(tempPeakTrackingPlotCropValues(self.LB):tempPeakTrackingPlotCropValues(self.UB)));
+                        % this hold needs to come after the re-plot to
+                        % clear it - shon - 29 March 2016
+                        hold(self.gui.peakTrackingFig(1), 'on');
+                    end
+                    
                     plot(self.gui.peakTrackingFig(1),...
                         tempXData(tempPeakTrackingPlotCropValues(self.LB):tempPeakTrackingPlotCropValues(self.UB)),...
                         tempFitPeakTrackingArray(tempPeakTrackingPlotCropValues(self.LB):tempPeakTrackingPlotCropValues(self.UB)));
+                    % Legend
+                    if self.contextMenu.trackedPeaksPlot.addLegend
+                        legend(self.gui.peakTrackingFig(1), 'Control', 'Functional', 'Location', 'northwest');
+                        hold(self.gui.peakTrackingFig(1), 'off');
+                    end
+
+                    hold(self.gui.peakTrackingFig(1), 'off');
                 end
                 ylabel(self.gui.peakTrackingFig(1), yLabelName);
                 self.gui.peakTrackingAndTempFig = self.gui.peakTrackingFig;
@@ -1826,7 +1970,7 @@ classdef appClass < handle
             end
             hold(self.gui.peakTrackingFig(1), 'on');
             
-            %note jonasf: there was  wired merge conflict;
+            %note jonasf: there was  weird merge conflict;
             if ~self.dataset{self.appParams.activeChannel, self.appParams.activeScan}.excludeScan
                 scanNumberCorrection = sum(self.appParams.activeScan >= self.appParams.tempActiveChannelExcludedScans);
                 correctedScanNum = self.appParams.activeScan - scanNumberCorrection;
@@ -2218,7 +2362,7 @@ classdef appClass < handle
             % correlates this and previous scanlines
             % assumes wavelength vectors match
             % ensure not the first scanline
-            if self.appParams.activeScan > self.firstScanNumber
+            if self.appParams.activeScan > self.appParams.referenceToPlot
                 % check if wavelengh vectors match
                 thisScanWvlSize = length(self.dataset{self.appParams.activeChannel, self.appParams.activeScan - 1}.wvl);
                 nextScanWvlSize = length(self.dataset{self.appParams.activeChannel, self.appParams.activeScan}.wvl);
