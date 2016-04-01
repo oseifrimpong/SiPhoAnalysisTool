@@ -1906,8 +1906,9 @@ classdef appClass < handle
                     legend(self.gui.peakTrackingFig(1), 'Fit', 'min/max');
                     % Legend
                     if self.contextMenu.trackedPeaksPlot.addLegend
+                        activeChStr = num2str(self.appParams.activeChannel);
                         hold(self.gui.peakTrackingFig(1), 'on');
-                        legend('Location', 'northwest');
+                        legend(self.gui.peakTrackingFig(1), activeChStr, 'Location', 'northwest');
                         hold(self.gui.peakTrackingFig(1), 'off');
                     end
                     
@@ -1916,20 +1917,29 @@ classdef appClass < handle
 
                     % reference plot - 29 march 2016
                     if self.contextMenu.trackedPeaksPlot.plotReference
-                        plot(self.gui.peakTrackingFig(1),...
+                        refChPlot_h = plot(self.gui.peakTrackingFig(1),...
                             tempXData(tempPeakTrackingPlotCropValues(self.LB):tempPeakTrackingPlotCropValues(self.UB)),...
                             tempReferenceFitPeakTrackingArray(tempPeakTrackingPlotCropValues(self.LB):tempPeakTrackingPlotCropValues(self.UB)));
+                        set(refChPlot_h, 'Color', 'red', 'LineStyle', '--', 'Linewidth', 1);
                         % this hold needs to come after the re-plot to
                         % clear it - shon - 29 March 2016
                         hold(self.gui.peakTrackingFig(1), 'on');
                     end
                     
-                    plot(self.gui.peakTrackingFig(1),...
+                    activeChPlot_h = plot(self.gui.peakTrackingFig(1),...
                         tempXData(tempPeakTrackingPlotCropValues(self.LB):tempPeakTrackingPlotCropValues(self.UB)),...
                         tempFitPeakTrackingArray(tempPeakTrackingPlotCropValues(self.LB):tempPeakTrackingPlotCropValues(self.UB)));
+                    set(activeChPlot_h, 'Color', 'blue', 'Linewidth', 1);
                     % Legend
                     if self.contextMenu.trackedPeaksPlot.addLegend
-                        legend(self.gui.peakTrackingFig(1), 'Control', 'Functional', 'Location', 'northwest');
+%                        activeChStr = strcat('Ch', num2str(self.appParams.activeChannel), {' '}, '(Active)');
+                        activeChStr = ['Ch', num2str(self.appParams.activeChannel), ' ', '(active)'];
+                        % get reference ch#
+                        strVals = splitstring(self.appParams.referenceToPlot,'.');
+                        refCh = str2double(strVals(1));
+%                        refChStr = strcat('Ch', num2str(refCh), {' '}, '(Control)');                        
+                        refChStr = ['Ch', num2str(refCh), ' ', '(control)'];                        
+                        legend(self.gui.peakTrackingFig(1), refChStr, activeChStr, 'Location', 'northwest');
                         hold(self.gui.peakTrackingFig(1), 'off');
                     end
 
