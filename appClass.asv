@@ -2087,7 +2087,7 @@ classdef appClass < handle
                         sprintf(strrep(self.dataset{self.appParams.activeChannel, self.reagentChangeIndex(rc) - 1}.params.ReagentName, ' ', '\n')), ...
                         'Parent', self.gui.peakTrackingFig(1), ...
                         'HorizontalAlignment', 'center', 'FontSize', 10, 'FontWeight', 'bold', 'Color', [0 0 0]);
-                    ub = rcIndex - self.tempPeakTrackingPlotCropValues(self.LB);
+                    ub = rcIndex - self.tempPeakTrackingPlotCropValues(self.LB)-1;
                     reagents(lb:ub) = {self.dataset{self.appParams.activeChannel, self.reagentChangeIndex(rc)}.params.ReagentName};
                 end
                 lb = ub+1; % upper bound becomes lower bound for next reagent
@@ -2100,7 +2100,7 @@ classdef appClass < handle
             hold(self.gui.peakTrackingFig(1), 'off');
             % last reagent...fill it out in calling funtion...
             ii = length(reagents);
-            reagents(ii+1:self.tempPeakTrackingPlotCropValues(self.UB)-self.tempPeakTrackingPlotCropValues(self.LB)+1) = {self.dataset{self.appParams.activeChannel, self.reagentChangeIndex(rc)}.params.ReagentName};
+            reagents(ii+1:self.tempPeakTrackingPlotCropValues(self.UB)-self.tempPeakTrackingPlotCropValues(self.LB)) = {self.dataset{self.appParams.activeChannel, self.reagentChangeIndex(rc)}.params.ReagentName};
         end
         
         function createTimeAndscanTemperatures(self)
