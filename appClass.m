@@ -2053,7 +2053,7 @@ classdef appClass < handle
         end
                 
         function reagents = showReagents(self)
-            reagents = {};
+            reagents = {}; % array to pass reagent list for all scans back to plotting function - shon - 3 April 2016
             tempReagentChangeIndex = self.reagentChangeIndex;
             startScan = tempReagentChangeIndex(1);
             while any(self.appParams.tempActiveChannelExcludedScans == startScan)
@@ -2072,7 +2072,7 @@ classdef appClass < handle
             
             hold(self.gui.peakTrackingFig(1), 'on');
             yLimit = get(self.gui.peakTrackingFig(1), 'ylim');
-            textOffsetScaler = [0.85, 0.9]; % alternates text height
+            textOffsetScaler = [0.85, 0.9]; % alternates text height - shon - 2 April 2016
             lb = 1; % initialize
             for rc = 2:length(tempReagentChangeIndex)
                 previousRcIndex = min(tempReagentChangeIndex(rc - 1) + self.contextMenu.trackedPeaksPlot.reagentOffset, length(self.appParams.xData));
@@ -2088,7 +2088,7 @@ classdef appClass < handle
                         'Parent', self.gui.peakTrackingFig(1), ...
                         'HorizontalAlignment', 'center', 'FontSize', 10, 'FontWeight', 'bold', 'Color', [0 0 0]);
                     ub = rcIndex - self.tempPeakTrackingPlotCropValues(self.LB);
-                    reagents(lb:ub) = {self.dataset{self.appParams.activeChannel, self.reagentChangeIndex(rc)}.params.ReagentName};
+                    reagents(lb:ub) = {self.dataset{self.appParams.activeChannel, self.reagentChangeIndex(rc-1)}.params.ReagentName};
                 end
                 lb = ub+1; % upper bound becomes lower bound for next reagent
             end
@@ -2100,7 +2100,7 @@ classdef appClass < handle
             hold(self.gui.peakTrackingFig(1), 'off');
             % last reagent...fill it out in calling funtion...
             ii = length(reagents);
-            reagents(ii+1:self.tempPeakTrackingPlotCropValues(self.UB)-self.tempPeakTrackingPlotCropValues(self.LB)+1) = {self.dataset{self.appParams.activeChannel, self.reagentChangeIndex(rc)}.params.ReagentName};
+            reagents(ii+1:self.tempPeakTrackingPlotCropValues(self.UB)-self.tempPeakTrackingPlotCropValues(self.LB)+1) = {self.dataset{self.appParams.activeChannel, self.reagentChangeIndex(rc-1)}.params.ReagentName};
         end
         
         function createTimeAndscanTemperatures(self)
