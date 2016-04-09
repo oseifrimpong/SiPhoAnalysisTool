@@ -1711,6 +1711,7 @@ classdef appClass < handle
             refChStr = '';
             activeChStr = '';
             reagents= [];
+            tempRawPeakTrackingArray = [];
             
             tempRawPeakTrackingArray = self.appParams.rawPeakTracking{self.appParams.activeChannel}{self.appParams.activePeak};
             %tempRawPeakTrackingArray = self.appParams.rawPeakTracking;
@@ -1754,10 +1755,12 @@ classdef appClass < handle
                 % first scan is excluded. Therefore, the normalization is
                 % wrong (eg: not 0 on plotted 1st scan)
 %                normalizationValue = tempRawPeakTrackingArray(self.firstScanNumber);
-                scanNumber = self.firstScanNumber;
+                scanNumber = self.tempPeakTrackingPlotCropValues(self.LB);                
                 while (self.dataset{self.appParams.activeChannel, scanNumber}.excludeScan)
                     scanNumber = scanNumber + 1;
                 end
+                
+                
                 normalizationValue = tempRawPeakTrackingArray(scanNumber);
                 
 %                 for scan = self.firstScanNumber:self.lastScanNumber
@@ -1792,7 +1795,8 @@ classdef appClass < handle
                 % first scan is excluded. Therefore, the normalization is
                 % wrong (eg: not 0 on plotted 1st scan)
 %                normalizationValue = referenceFitPeakTrackingArray(self.firstScanNumber);
-                scanNumber = self.firstScanNumber;
+%                scanNumber = self.firstScanNumber;
+                scanNumber = self.tempPeakTrackingPlotCropValues(self.LB);                
                 while (self.dataset{self.appParams.activeChannel, scanNumber}.excludeScan)
                     scanNumber = scanNumber + 1;
                 end
@@ -1823,7 +1827,8 @@ classdef appClass < handle
                 % first scan is excluded. Therefore, the normalization is
                 % wrong (eg: not 0 on plotted 1st scan)
 %                normalizationValue = referenceFitPeakTrackingArrayToPlot(self.firstScanNumber);
-                scanNumber = self.firstScanNumber;
+%                scanNumber = self.firstScanNumber;
+                scanNumber = self.tempPeakTrackingPlotCropValues(self.LB);                
                 while (self.dataset{self.appParams.activeChannel, scanNumber}.excludeScan)
                     scanNumber = scanNumber + 1;
                 end
@@ -1914,7 +1919,7 @@ classdef appClass < handle
                     if self.contextMenu.trackedPeaksPlot.addLegend
                         activeChStr = num2str(self.appParams.activeChannel);
                         hold(self.gui.peakTrackingFig(1), 'on');
-                        legend(self.gui.peakTrackingFig(1), activeChStr, 'Location', 'northwest');
+                        legend(self.gui.peakTrackingFig(1), activeChStr, 'Location', 'southeast');
                         hold(self.gui.peakTrackingFig(1), 'off');
                     end
                     
@@ -1947,7 +1952,7 @@ classdef appClass < handle
                         refCh = str2double(strVals(1));
 %                        refChStr = strcat('Ch', num2str(refCh), {' '}, '(Control)');                        
                         refChStr = ['Ch', num2str(refCh), ' ', '(control)'];                        
-                        legend(self.gui.peakTrackingFig(1), refChStr, activeChStr, 'Location', 'northwest');
+                        legend(self.gui.peakTrackingFig(1), refChStr, activeChStr, 'Location', 'southeast');
                         hold(self.gui.peakTrackingFig(1), 'off');
                     end
 
@@ -1956,7 +1961,16 @@ classdef appClass < handle
                 ylabel(self.gui.peakTrackingFig(1), yLabelName);
                 self.gui.peakTrackingAndTempFig = self.gui.peakTrackingFig;
             end
-                                    
+
+            %% don't plot stuff outside cropped bounds
+            if self.testParams.AssayParams.TranslateRecipeTimeToSweeps
+                set(self.gui.peakTrackingFig(1), 'XLim', [self.tempPeakTrackingPlotCropValues(self.LB),self.tempPeakTrackingPlotCropValues(self.UB)]);
+            else
+                set(self.gui.peakTrackingFig(1), 'XLim', ...
+                    [self.scanTimes(self.tempPeakTrackingPlotCropValues(self.LB)),...
+                    self.scanTimes(self.tempPeakTrackingPlotCropValues(self.UB))]);
+            end            
+            
             %% add y-difference measurements (if enabled)
             if ~isempty(self.contextMenu.trackedPeaksPlot.yDifferenceValues)
                 hold(self.gui.peakTrackingFig(1), 'on');
@@ -1972,12 +1986,11 @@ classdef appClass < handle
                 end
                 if length(yDifferenceValues) >= 2
                     % plot the difference as well
-                    difference = yDifferenceValues(2) - yDifferenceValues(1);
+                    difference_pm = abs(yDifferenceValues(2) - yDifferenceValues(1))*1000;
                     % midX = mean(self.contextMenu.trackedPeaksPlot.yDifferenceValues.x);
                     midY = mean(yDifferenceValues);
-                    xLeft = xlim;
-                    xLeft = xLeft(1);
-                    text(xLeft, midY, num2str(difference),  'Parent', self.gui.peakTrackingFig(1));
+                    msg = texlabel(sprintf('Delta %4.0f pm',difference_pm));
+                    text(self.scanTimes(self.tempPeakTrackingPlotCropValues(self.LB))+1, midY, msg,  'Parent', self.gui.peakTrackingFig(1));
                 end
                 hold(self.gui.peakTrackingFig(1), 'off');
             end
@@ -2034,9 +2047,6 @@ classdef appClass < handle
                 text(textPos(1), textPos(2), textStr,  'Parent', self.gui.peakTrackingFig(1))
             end
             
-            % don't plot stuff outside cropped bounds
-            set(self.gui.peakTrackingFig(1), 'XLim', [self.tempPeakTrackingPlotCropValues(self.LB),self.tempPeakTrackingPlotCropValues(self.UB)]);
-
             hold(self.gui.peakTrackingFig(1), 'off');
             xlabel(xLabelName)
             
