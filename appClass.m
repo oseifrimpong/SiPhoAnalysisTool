@@ -93,6 +93,7 @@ classdef appClass < handle
             self.contextMenu.trackedPeaksPlot.plotReference = false;
             self.contextMenu.trackedPeaksPlot.showReagents = false;
             self.contextMenu.trackedPeaksPlot.yDifferenceValues = [];
+            self.contextMenu.trackedPeaksPlot.yDifferenceValuesWithReference = [];
             self.contextMenu.trackedPeaksPlot.subtractReference = false;
             self.contextMenu.trackedPeaksPlot.showCurrentPosition = true;
             self.contextMenu.trackedPeaksPlot.plotExcludedScans = false;
@@ -244,6 +245,7 @@ classdef appClass < handle
             uimenu(peakTrackingPlotContextMenu_h, 'Label', 'Units in pm', 'Callback', @self.contextMenuTrackedPeaksPlotShowInPm);
             uimenu(peakTrackingPlotContextMenu_h, 'Label', 'Export Data', 'Callback', @self.contextMenuTrackedPeaksPlotExportData);
             uimenu(peakTrackingPlotContextMenu_h, 'Label', 'Export Figure', 'Callback', {@self.contextMenuTrackedPeaksPlotUndock});
+            uimenu(peakTrackingPlotContextMenu_h, 'Label', 'Measure y-axis difference with Reference', 'Callback', @self.contextMenuTrackedPeaksPlotMeasureYDifferenceWithReference);
             % attach context menu to figure window
             set(self.gui.peakTrackingFig(1), 'uicontextmenu', peakTrackingPlotContextMenu_h);
                         
@@ -360,6 +362,40 @@ classdef appClass < handle
                 % clear
                 self.contextMenu.trackedPeaksPlot.yDifferenceValues = [];
                 set(hObject, 'Label', 'Measure y-axis difference');
+                % update plot to remove y-axis lines
+                self.updatePlotting();
+            end
+        end
+        
+        function self = contextMenuTrackedPeaksPlotMeasureYDifferenceWithReference (self, hObject, eventData)
+            if isempty(self.contextMenu.trackedPeaksPlot.yDifferenceValuesWithReference) % set, and add y-axis measurement
+                % popup instructions window
+                h = msgbox('Click on point on functionalized plot. Then click on point on reference plot. The difference will be displayed on the plot. To start over, press the middle-mouse button.');
+                uiwait(h);
+                userClicks = 0;
+                while userClicks < 2
+                    % capture clicks
+                    [x, y, button] = ginput(1); % identify 1 point and return L/middle/R button press
+                    if (button == 2 || button == 3) % clear and reset
+                        userClicks = 0;
+                        self.contextMenu.trackedPeaksPlot.yDifferenceValuesWithReference = [];
+                    else % left button click (button == 1)
+                        % assign y-values
+                        userClicks = userClicks+1;
+                        self.contextMenu.trackedPeaksPlot.yDifferenceValuesWithReference.x(userClicks) = x;
+                        self.contextMenu.trackedPeaksPlot.yDifferenceValuesWithReference.y(userClicks) = y;
+                    end
+                end
+                % add a dashed y-axis line at both y-axis points in the plotting function
+                % add yDifference to plot -- self.contextMenu.trackedPeaksPlot.yDifferenceValues(end)-self.contextMenu.trackedPeaksPlot.yDifferenceValues(1)
+                % toggle the context menu value
+                set(hObject, 'Label', 'Remove y-axis difference measurement with Reference plot');
+                % update plot
+                self.updatePlotting();
+            else % already displaying y-axis difference measurement ... clear and toggle context menu
+                % clear
+                self.contextMenu.trackedPeaksPlot.yDifferenceValuesWithReference = [];
+                set(hObject, 'Label', 'Measure y-axis difference with Reference plot');
                 % update plot to remove y-axis lines
                 self.updatePlotting();
             end
@@ -1977,6 +2013,30 @@ classdef appClass < handle
                 yDifferenceValues = zeros(size(self.contextMenu.trackedPeaksPlot.yDifferenceValues.y));
                 for ii = 1:length(yDifferenceValues)
                     [~, xIndex] = min(abs(self.appParams.xData - self.contextMenu.trackedPeaksPlot.yDifferenceValues.x(ii)));
+                    yDifferenceValues(ii) = tempFitPeakTrackingArray(xIndex);
+                    % plot line
+                    plot(self.gui.peakTrackingFig(1),...
+                        xlim, ...
+                        yDifferenceValues(ii)*ones(size(xlim)),...
+                        '-.og')
+                end
+                if length(yDifferenceValues) >= 2
+                    % plot the difference as well
+                    difference_pm = abs(yDifferenceValues(2) - yDifferenceValues(1))*1000;
+                    % midX = mean(self.contextMenu.trackedPeaksPlot.yDifferenceValues.x);
+                    midY = mean(yDifferenceValues);
+                    msg = texlabel(sprintf('Delta %4.0f pm',difference_pm));
+                    text(self.scanTimes(self.tempPeakTrackingPlotCropValues(self.LB))+1, midY, msg,  'Parent', self.gui.peakTrackingFig(1));
+                end
+                hold(self.gui.peakTrackingFig(1), 'off');
+            end
+            
+            %% add y-difference measurements with Reference (if enabled)
+            if ~isempty(self.contextMenu.trackedPeaksPlot.yDifferenceValuesWithReference)
+                hold(self.gui.peakTrackingFig(1), 'on');
+                yDifferenceValues = zeros(size(self.contextMenu.trackedPeaksPlot.yDifferenceValuesWithReference.y));
+                for ii = 1:length(yDifferenceValues)
+                    [~, xIndex] = min(abs(self.appParams.xData - self.contextMenu.trackedPeaksPlot.yDifferenceValuesWithReference.x(ii)));
                     yDifferenceValues(ii) = tempFitPeakTrackingArray(xIndex);
                     % plot line
                     plot(self.gui.peakTrackingFig(1),...
