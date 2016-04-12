@@ -1796,7 +1796,6 @@ classdef appClass < handle
                     scanNumber = scanNumber + 1;
                 end
                 
-                
                 normalizationValue = tempRawPeakTrackingArray(scanNumber);
                 
 %                 for scan = self.firstScanNumber:self.lastScanNumber
@@ -2037,7 +2036,13 @@ classdef appClass < handle
                 yDifferenceValues = zeros(size(self.contextMenu.trackedPeaksPlot.yDifferenceValuesWithReference.y));
                 for ii = 1:length(yDifferenceValues)
                     [~, xIndex] = min(abs(self.appParams.xData - self.contextMenu.trackedPeaksPlot.yDifferenceValuesWithReference.x(ii)));
-                    yDifferenceValues(ii) = tempFitPeakTrackingArray(xIndex);
+                    if ii == 1 % assume functional plot
+%                        yDifferenceValues(ii) = tempFitPeakTrackingArray(xIndex);
+                        yDifferenceValues(ii) = tempFitPeakTrackingArray(xIndex);
+                    else % assume 2 == reference plot
+%                        yDifferenceValues(ii) = tempFitPeakTrackingArray(xIndex);
+                        yDifferenceValues(ii) = tempReferenceFitPeakTrackingArray(xIndex);
+                    end
                     % plot line
                     plot(self.gui.peakTrackingFig(1),...
                         xlim, ...
