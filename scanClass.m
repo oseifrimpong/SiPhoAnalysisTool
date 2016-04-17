@@ -91,9 +91,15 @@ classdef scanClass < handle
                     leftWvl = self.peakLocation(pp) - self.defaultPeakWindowSize{pp}/2;
                     leftIndex = find(self.wvl -  leftWvl >= 0);
                     leftIndex = leftIndex(1);
+                    
                     rightWvl = self.peakLocation(pp) + self.defaultPeakWindowSize{pp}/2;
                     rightIndex = find(self.wvl -  rightWvl <= 0);
-                    rightIndex = rightIndex(end);
+
+                    if isempty(rightIndex)
+                        rightIndex = length(self.wvl);
+                    else
+                        rightIndex = rightIndex(end);
+                    end
                     
                     if self.DEBUG
                     disp('CreatePeakObject debug ---------')

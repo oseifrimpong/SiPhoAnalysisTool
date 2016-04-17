@@ -1406,6 +1406,7 @@ classdef appClass < handle
                                     end
                                 end
                             end % peak loop (first case)
+                        previousPeakWvlIndex(channel) = peakWvlIndex;
                         end % channel loop (first case)
                     else % scan > self.firstScanNumber; don't do it again for the first scan
                         % Erase previous preProcess Data
@@ -1443,6 +1444,7 @@ classdef appClass < handle
                                    disp(msg);
                                 end
                                 %index is from the peak window
+                                index
                                 abs_peak_index = fitWindowIndex{channel}{peak}(self.LB)+index(end);
                                 peakResults.peakWvl{channel}{peak} = tempWvl(abs_peak_index);
                                 % debug
@@ -1457,8 +1459,9 @@ classdef appClass < handle
 %                                         ceil(fitWindowIndex{channel}{peak}(self.LB)+index - ...
 %                                        samplesInWindow{channel}{peak}/2);
                                 end
+                                
                                 if floor(abs_peak_index + samplesInWindow{channel}{peak}/2) > length(tempWvl)
-                                    fitWindowIndex{channel}{peak}(self.LB) = length(tempWvl);
+                                    fitWindowIndex{channel}{peak}(self.UB) = length(tempWvl);
                                 else
                                     fitWindowIndex{channel}{peak}(self.UB) = ...
                                         floor(abs_peak_index + ...
