@@ -1444,9 +1444,12 @@ classdef appClass < handle
                                    disp(msg);
                                 end
                                 %index is from the peak window
-                                index
                                 abs_peak_index = fitWindowIndex{channel}{peak}(self.LB)+index(end);
-                                peakResults.peakWvl{channel}{peak} = tempWvl(abs_peak_index);
+                                if abs_peak_index > length(tempWvl)
+                                    abs_peak_index = length(tempWvl)-100;
+                                else
+                                    peakResults.peakWvl{channel}{peak} = tempWvl(abs_peak_index);
+                                end
                                 % debug
 
                                 % re-center window for next fit
