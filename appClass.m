@@ -1406,6 +1406,7 @@ classdef appClass < handle
                                     end
                                 end
                             end % peak loop (first case)
+                        previousPeakWvlIndex(channel) = peakWvlIndex;
                         end % channel loop (first case)
                     else % scan > self.firstScanNumber; don't do it again for the first scan
                         % Erase previous preProcess Data
@@ -1444,8 +1445,12 @@ classdef appClass < handle
                                 %index is from the peak window
 %                                abs_peak_index = fitWindowIndex{channel}{peak}(self.LB)+index(end);
 % shon 19 April 2016
-                                abs_peak_index = fitWindowIndex{channel}{peak}(self.LB)+index;
-                                peakResults.peakWvl{channel}{peak} = tempWvl(abs_peak_index);
+                                abs_peak_index = fitWindowIndex{channel}{peak}(self.LB)+index(end);
+                                if abs_peak_index > length(tempWvl)
+                                    abs_peak_index = length(tempWvl)-100;
+                                else
+                                    peakResults.peakWvl{channel}{peak} = tempWvl(abs_peak_index);
+                                end
                                 % debug
 
                                 % re-center window for next fit
@@ -1458,8 +1463,9 @@ classdef appClass < handle
 %                                         ceil(fitWindowIndex{channel}{peak}(self.LB)+index - ...
 %                                        samplesInWindow{channel}{peak}/2);
                                 end
+                                
                                 if floor(abs_peak_index + samplesInWindow{channel}{peak}/2) > length(tempWvl)
-                                    fitWindowIndex{channel}{peak}(self.LB) = length(tempWvl);
+                                    fitWindowIndex{channel}{peak}(self.UB) = length(tempWvl);
                                 else
                                     fitWindowIndex{channel}{peak}(self.UB) = ...
                                         floor(abs_peak_index + ...
