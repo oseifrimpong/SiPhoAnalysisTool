@@ -53,7 +53,7 @@ classdef appClass < handle
     end
     
     properties (Constant)
-        DEBUG = false;
+        DEBUG = true;
         LB = 1; % lower bound
         UB = 2; % upper bound
     end
@@ -1424,7 +1424,6 @@ classdef appClass < handle
                                 % assign wvl windows
 %Reverse of line 1064
 %                                peakResults.wvlWindow{channel}{peak} = wvlWindow{channel}{peak};
-                                
                                 % assign peakWvl
                                 if peakResults.isPeak(channel) % maxima
                                     [peakResults.peakPwr{channel}{peak}, index] =...
@@ -1443,7 +1442,9 @@ classdef appClass < handle
                                    disp(msg);
                                 end
                                 %index is from the peak window
-                                abs_peak_index = fitWindowIndex{channel}{peak}(self.LB)+index(end);
+%                                abs_peak_index = fitWindowIndex{channel}{peak}(self.LB)+index(end);
+% shon 19 April 2016
+                                abs_peak_index = fitWindowIndex{channel}{peak}(self.LB)+index;
                                 peakResults.peakWvl{channel}{peak} = tempWvl(abs_peak_index);
                                 % debug
 
