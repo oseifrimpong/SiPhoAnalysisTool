@@ -13,9 +13,9 @@ classdef peakClass < handle
     end
     
     properties (Access = protected)
-        fit; % struct for fit data
         guiHandles; % structure of all the handles associated w/ gui_figure_handle
         userResponse; % for debugging
+        fit; % struct for fit data
     end
     
     properties (Constant)
@@ -950,8 +950,10 @@ classdef peakClass < handle
                 disp(msg);
                 msg=strcat('Q =',num2str(self.fit.Q) );
                 disp(msg);
-                msg=strcat('Peak pwr =',num2str(maxPwr) );
-                disp(msg);
+                if exist(maxPwr, 'var')
+                    msg=strcat('Peak pwr =',num2str(maxPwr) );
+                    disp(msg);
+                end
             end
             
         end

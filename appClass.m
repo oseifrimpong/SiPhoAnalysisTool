@@ -53,7 +53,7 @@ classdef appClass < handle
     end
     
     properties (Constant)
-        DEBUG = true;
+        DEBUG = false;
         LB = 1; % lower bound
         UB = 2; % upper bound
     end
